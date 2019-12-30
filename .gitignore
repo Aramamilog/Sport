@@ -1,0 +1,14 @@
+$ cat .gitignore
+.idea
+__pycache__
+config/config.py
+logs_error/*
+web_panel/db.sqlite3
+web_panel/manage.py
+web_panel/web_panel
+web_panel/admin_panel/migrations
+web_panel/media/actions/*
+web_panel/media/healthy/*
+web_panel/media/news/*
+web_panel/media/partnership/*
+web_panel/media/sport/*
