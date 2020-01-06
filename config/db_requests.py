@@ -427,6 +427,72 @@ def select_promo(data):
     con.close()
 
     return True
+
+
+def select_users_statistic():
+    """Статистика клиентов"""
+    con = sqlite3.connect(db_path)
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    cur.execute("SELECT first_name as 'ИМЯ', user_name 'USER_NAME', contact as 'КОНТАКТ', language as 'ЯЗЫК', user_id as 'ID ПОЛЬЗОВАТЕЛЯ' FROM admin_panel_users")
+    result = cur.fetchall()
+    cur.close()
+    con.close()
+
+    if result == []:
+        return None
+
+    return result
+
+
+def select_partnership_statistic():
+    """Статистика партнерки"""
+    con = sqlite3.connect(db_path)
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    cur.execute("SELECT full_name as 'Ф.И.О.', contact as 'КОНТАКТ', brand_name as 'НАЗВАНИЕ БРЕНДА', comment as 'КОММЕНТАРИЙ' FROM admin_panel_partnership")
+    result = cur.fetchall()
+    cur.close()
+    con.close()
+
+    if result == []:
+        return None
+
+    return result
+
+
+def select_order_statistic():
+    """Статистика заказов"""
+    con = sqlite3.connect(db_path)
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    cur.execute("SELECT count as 'НОМЕР ЗАКАЗА', first_name as 'ИМЯ', contact as 'КОНТАКТ', order_text as 'ЗАКАЗ', full_price as 'ЦЕНА', type_payment as 'ТИП ОПЛАТЫ', type_delivery as 'ТИП ДОСТАВКИ', date as 'ДАТА/ВРЕМЯ', status as 'СТАТУС ЗАКАЗА' FROM admin_panel_orders")
+    result = cur.fetchall()
+    cur.close()
+    con.close()
+
+    if result == []:
+        return None
+
+    return result
+
+
+def select_for_partnership_statistic(data):
+    """Статистика для партнеров"""
+    con = sqlite3.connect(db_path)
+    con.row_factory = dict_factory
+    cur = con.cursor()
+    cur.execute("SELECT category as 'КАТЕГОРИЯ', product as 'ПРОДУКТ', count as 'КОЛИЧЕСТВО', price as 'ОБЩАЯ СУММА ЗА ТОВАР(Ы)', date_time as 'ДАТА ЗАКАЗА' FROM admin_panel_partnershipstatistic WHERE brand_id = ?",
+                (data['brand_id'],))
+    result = cur.fetchall()
+    cur.close()
+    con.close()
+
+    if result == []:
+        return None
+
+    return result
+
 # SELECT
 
 
@@ -475,6 +541,52 @@ def insert_promo_user(data):
         cur.execute("INSERT INTO admin_panel_promocodesactivate (user_id_id, date_time, promocode) VALUES (?, ?, ?)",
                     (data['user_id_id'], data['date_time'], promocode))
         con.commit()
+
+    cur.close()
+    con.close()
+
+
+def insert_partnership_statistic(data):
+    """Добавить в статистику партнерки"""
+    con = sqlite3.connect(db_path)
+    con.row_factory = dict_factory
+    cur = con.cursor()
+
+
+    if data['sport_basket']:
+        for category in data['sport_basket']:
+            cur.execute("SELECT title_ru as title FROM admin_panel_categorysport WHERE id = ?", (int(category),))
+            category_title = cur.fetchone()['title']
+
+            for product in data['sport_basket'][category]:
+                cur.execute("SELECT title_ru as product, brand_id as brand_id FROM admin_panel_productssport WHERE id = ?", (int(product),))
+                product_title = cur.fetchone()['product']
+                brand_id = cur.fetchone()['brand_id']
+
+                count = data['sport_basket'][category][product]['count']
+                price = data['sport_basket'][category][product]['price'] * count
+
+                cur.execute("INSERT INTO admin_panel_partnershipstatistic (brand_id, category, product, count, price, date_time) VALUES (?, ?, ?, ?, ?, ?)",
+                            (brand_id, category_title, product_title, count, price, data['date_time']))
+                con.commit()
+
+    if data['healthy_basket']:
+        for category in data['healthy_basket']:
+            cur.execute("SELECT title_ru as title FROM admin_panel_categoryhealthy WHERE id = ?", (int(category),))
+            category_title = cur.fetchone()['title']
+
+            for product in data['healthy_basket'][category]:
+                cur.execute("SELECT title_ru as product, brand_id as brand_id FROM admin_panel_productshealthy WHERE id = ?", (int(product),))
+                result = cur.fetchone()
+                product_title = result['product']
+                brand_id = result['brand_id']
+
+                count = data['healthy_basket'][category][product]['count']
+                price = data['healthy_basket'][category][product]['price'] * count
+
+                cur.execute("INSERT INTO admin_panel_partnershipstatistic (brand_id, category, product, count, price, date_time) VALUES (?, ?, ?, ?, ?, ?)",
+                            (brand_id, category_title, product_title, count, price, data['date_time']))
+                con.commit()
 
     cur.close()
     con.close()

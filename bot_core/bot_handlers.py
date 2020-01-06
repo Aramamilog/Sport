@@ -14,6 +14,11 @@ upd_dispatcher.add_handler(CommandHandler('promo_code', thread_pool.thread_promo
 # ПРОМОКОДЫ
 
 
+# СТАТИСТИКА
+upd_dispatcher.add_handler(CommandHandler('statistic', thread_pool.thread_statistic_admin))
+# СТАТИСТИКА
+
+
 # ЯЗЫК
 upd_dispatcher.add_handler(MessageHandler(filter_bot.filter_obj.language, thread_pool.thread_start_update))
 # ЯЗЫК

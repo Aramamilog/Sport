@@ -7,10 +7,12 @@ from bot_core import bot_handlers
 
 # import data
 # import modules
+import pyexcel
 import datetime as d
 import re, random, string
 from time import sleep
 from copy import deepcopy
+from collections import OrderedDict
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, LabeledPrice
 
 from bot_core import keyboardbot, textbot
@@ -54,6 +56,56 @@ class MainBot:
             text_admin = textbot.admin
             bot.send_message(chat_id=user_id, text=text_admin, parse_mode='HTML')
 # СТАРТ
+
+
+# СТАТИСТИКА
+    @staticmethod
+    def statistic_admin(bot, update):
+        """Статистик админу"""
+        user_id = update_data.user_id(update)
+        db_admin = db_requests.select_user_admin({'user_id': user_id})
+        if db_admin:
+            result_users = db_requests.select_users_statistic()
+            result_partnership = db_requests.select_partnership_statistic()
+            result_order = db_requests.select_order_statistic()
+
+            array_table = {}
+            if result_users:
+                array_table['Клиенты'] = result_users
+            if result_partnership:
+                array_table['Партнерка'] = result_partnership
+            if result_order:
+                for ind, item in enumerate(result_order):
+                    d_type_payment = {'cash': 'Наличные', 'payme': 'PayMe'}
+                    d_type_delivery = {'self': 'Самовывоз', 'delivery': 'Доставка'}
+                    d_status = {0: "🛒 Новый", 1: "✅ Принят", 2: "⌛ Ожидание", 3: "❌ Отклонен"}
+
+                    result_order[ind]['ТИП ОПЛАТЫ'] = d_type_payment[item['ТИП ОПЛАТЫ']]
+                    result_order[ind]['ТИП ДОСТАВКИ'] = d_type_delivery[item['ТИП ДОСТАВКИ']]
+                    result_order[ind]['СТАТУС ЗАКАЗА'] = d_status[item['СТАТУС ЗАКАЗА']]
+
+                array_table['Заказы'] = result_order
+
+            if array_table == {}:
+                bot.send_message(chat_id=user_id, text=textbot.statistic_empty, parse_mode='HTML')
+                return
+
+            array = OrderedDict()
+
+            for result in array_table:
+                sheet_name = result
+                array[sheet_name] = [[key for key in array_table[result][0]]
+                                     ]
+                for data in array_table[result]:
+                    array[sheet_name].append([data[key] for key in data])
+
+            pyexcel.save_book_as(bookdict=array, dest_file_name="statistic.xls")
+
+            bot.send_message(chat_id=user_id, text=textbot.statistic, parse_mode='HTML')
+
+            with open('statistic.xls', 'rb') as f:
+                bot.sendDocument(chat_id=user_id, document=f, timeout=1000)
+# СТАТИСТИКА
 
 
 # ЯЗЫК
@@ -238,8 +290,33 @@ class MainBot:
 
         if db_partner:
             if db_partner['brand_id']:
-                return # TODO: доделать статистику
+                result_partnership = db_requests.select_for_partnership_statistic({'brand_id': db_partner['brand_id']})
 
+                array_table = {}
+                if result_partnership:
+                    array_table['Статистика'] = result_partnership
+
+                if array_table == {}:
+                    bot.send_message(chat_id=user_id, text=textbot.statistic_empty, parse_mode='HTML')
+                    return
+
+                array = OrderedDict()
+
+                for result in array_table:
+                    sheet_name = result
+                    array[sheet_name] = [[key for key in array_table[result][0]]
+                                         ]
+                    for data in array_table[result]:
+                        array[sheet_name].append([data[key] for key in data])
+
+                pyexcel.save_book_as(bookdict=array, dest_file_name="statistic.xls")
+
+                bot.send_message(chat_id=user_id, text=textbot.statistic, parse_mode='HTML')
+
+                with open('statistic.xls', 'rb') as f:
+                    bot.sendDocument(chat_id=user_id, document=f, timeout=1000)
+
+                return
 
         text = textbot.partnership_already[language]
         keyboard = keyboardbot.partnership_already[language]
@@ -569,7 +646,6 @@ class MainBot:
 
 # ПРОДУКТЫ
     @staticmethod
-    @error_catch_decorator
     def healthy(bot, update):
         """Категории - здоровое питание"""
         try:
@@ -608,7 +684,6 @@ class MainBot:
 
 
     @staticmethod
-    @error_catch_decorator
     def products_healthy(bot, update):
         """Выбор категории здоровое питание"""
         user_id = query_data.user_id(update)
@@ -869,7 +944,6 @@ class MainBot:
 
 
 # ФИЛЬТРЫ
-    @error_catch_decorator
     def filter_text(self, bot, update):
         """Фильтр текста"""
         user_id = update_data.user_id(update)
@@ -1089,7 +1163,6 @@ class MainBot:
             return True
 
     @staticmethod
-    @error_catch_decorator
     def promo_code(bot, update):
         """Генерация промокода"""
         user_id = update_data.user_id(update)
@@ -1249,7 +1322,6 @@ class Delivery:
 
 
 # КОРЗИНА
-    @error_catch_decorator
     def basket(self, bot, update):
         """Корзина"""
         user_id = update_data.user_id(update)
@@ -1411,7 +1483,6 @@ class Delivery:
 
 
 # ДОБАВЛЕНИЕ ПРОДУКТА
-    @error_catch_decorator
     def add_product(self, bot, update):
         """Добавить продукт"""
         user_id = query_data.user_id(update)
@@ -1494,7 +1565,6 @@ class Delivery:
 
 
 # ЗАКАЗ
-    @error_catch_decorator
     def type_delivery(self, bot, update):
         """Выбор типа доставки"""
         user_id = update_data.user_id(update)
@@ -1516,7 +1586,6 @@ class Delivery:
             main_object.start(bot, update)
 
 
-    @error_catch_decorator
     def send_order(self, bot, update):
         """Отправка заявки в канал"""
         user_id = update_data.user_id(update)
@@ -1539,8 +1608,6 @@ class Delivery:
             full_price_menu += basket_bill['full_price']
             basket_bill_menu += textbot.basket_bill_sport[language].format(basket_bill_menu=basket_bill['bill'])
 
-        self.user_basket_healthy.pop(user_id, None)
-        self.user_basket_sport.pop(user_id, None)
 
         type_delivery = {'self': 'Самовывоз', 'delivery': 'Доставка'}
         type_payment = {'cash': 'Наличные', 'payme': 'PayMe'}
@@ -1609,7 +1676,27 @@ class Delivery:
 
             db_requests.update_decrement_promo({'list_of_promocodes': self.promocode_form[user_id]['list_of_promocodes']})
 
+
+        # добавить в статистику партнерки
+        if self.user_basket_healthy.get(user_id):
+            healthy_basket = self.user_basket_healthy[user_id]
+        else:
+            healthy_basket = None
+
+        if self.user_basket_sport.get(user_id):
+            sport_basket = self.user_basket_sport[user_id]
+        else:
+            sport_basket = None
+
+
+        db_requests.insert_partnership_statistic({'sport_basket': sport_basket, 'healthy_basket': healthy_basket,
+                                                  'date_time': (d.datetime.today() + d.timedelta(hours=config.time_zone)).strftime("%d.%m.%y/%H:%M")})
+        # добавить в статистику партнерки
+
+
         self.promocode_form.pop(user_id, None)
+        self.user_basket_healthy.pop(user_id, None)
+        self.user_basket_sport.pop(user_id, None)
 
 
     @staticmethod

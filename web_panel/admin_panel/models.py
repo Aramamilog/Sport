@@ -326,3 +326,18 @@ class BotAdmin(models.Model):
         verbose_name = "админа"
         verbose_name_plural = "🔒 АДМИН БОТА"
 ### АДМИН БОТА ###
+
+
+### СТАТИСТИКА ПАРТНЕРАМ ###
+class PartnershipStatistic(models.Model):
+    """Статистика для партнеров"""
+    brand = models.ForeignKey(Brands, on_delete=models.SET_NULL, null=True)
+    category = models.CharField(max_length=1000, verbose_name='Категория')
+    product = models.CharField(max_length=1000, verbose_name='Продукт')
+    count = models.IntegerField(verbose_name='Количество')
+    price = models.IntegerField(verbose_name='Цена')
+    date_time = models.CharField(max_length=100, verbose_name='Дата / Время')
+
+    def __str__(self):
+        return str(self.brand)
+### СТАТИСТИКА ПАРТНЕРАМ ###

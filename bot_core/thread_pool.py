@@ -95,6 +95,13 @@ def thread_promo_code(bot, update):
 # ПРОМОКОДЫ
 
 
+# СТАТИСТИКА
+def thread_statistic_admin(bot, update):
+    """Статистик админу"""
+    pool.submit(main_object.statistic_admin, bot, update)
+# СТАТИСТИКА
+
+
 # РАССЫЛКА
 def thread_send(bot, update):
     """Рассылка"""
